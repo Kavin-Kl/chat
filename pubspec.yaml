@@ -35,6 +35,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  animated_text_kit: ^4.2.3
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +60,13 @@ flutter:
   uses-material-design: true
   assets:
     - images/
+  fonts:
+    - family: Nexa
+      fonts:
+        - asset: fonts/Nexa-ExtraLight.ttf
+        - asset: fonts/Nexa-Heavy.ttf
+          weight: 700
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:
