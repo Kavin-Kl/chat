@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -6,6 +7,40 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _l = FirebaseAuth.instance; // Firebase instance
+  String email = '';
+  String password = '';
+  bool showSpinner = false;
+  String? errorMessage;
+
+  void loginUser() async {
+    setState(() {
+      showSpinner = true;
+      errorMessage = null; // Reset error message
+    });
+
+    try {
+      await _l.signInWithEmailAndPassword(email: email, password: password);
+      print("✅ Login Successful!");
+
+      // Navigate to ChatScreen after successful login
+      Navigator.pushNamed(context, '/chat');
+    } catch (e) {
+      print("❌ Login Failed: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login Failed: $e')),
+      );
+
+      setState(() {
+        errorMessage = e.toString();
+      });
+    }
+
+    setState(() {
+      showSpinner = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,7 +62,9 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 48.0,
             ),
             TextField(
+              textAlign: TextAlign.center,
               onChanged: (value) {
+                email = value;
                 //Do something with the user input.
               },
               decoration: InputDecoration(
@@ -53,7 +90,9 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 8.0,
             ),
             TextField(
+              textAlign: TextAlign.center,
               onChanged: (value) {
+                password = value;
                 //Do something with the user input.
               },
               decoration: InputDecoration(
@@ -85,14 +124,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.all(Radius.circular(30.0)),
                 elevation: 5.0,
                 child: MaterialButton(
-                  onPressed: () {
-                    //Implement login functionality.
-                  },
+                  onPressed: loginUser,
                   minWidth: 200.0,
                   height: 42.0,
-                  child: Text(
-                    'Log In',
-                  ),
+                  child: showSpinner
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text('Log In'),
                 ),
               ),
             ),
