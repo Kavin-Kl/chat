@@ -159,7 +159,7 @@ class _ChatScreenState extends State<ChatScreen> {
               decoration: kMessageContainerDecoration,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
+                children: [
                   Expanded(
                     child: TextField(
                       controller: _messageController,
