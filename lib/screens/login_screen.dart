@@ -14,31 +14,75 @@ class _LoginScreenState extends State<LoginScreen> {
   String? errorMessage;
 
   void loginUser() async {
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter email and password')),
+      );
+      return;
+    }
+
     setState(() {
       showSpinner = true;
       errorMessage = null; // Reset error message
     });
 
     try {
-      await _l.signInWithEmailAndPassword(email: email, password: password);
-      print("✅ Login Successful!");
-
-      // Navigate to ChatScreen after successful login
-      Navigator.pushNamed(context, '/chat');
-    } catch (e) {
-      print("❌ Login Failed: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login Failed: $e')),
+      final userCredential = await _l
+          .signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password.trim(),
+      )
+          .timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          throw FirebaseAuthException(
+            code: 'timeout',
+            message: 'Login timed out. Please try again.',
+          );
+        },
       );
 
+      if (userCredential.user != null) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'No user found with this email.';
+          break;
+        case 'wrong-password':
+          message = 'Wrong password provided.';
+          break;
+        case 'invalid-email':
+          message = 'Invalid email address.';
+          break;
+        case 'timeout':
+          message = 'Connection timed out. Please try again.';
+          break;
+        default:
+          message = 'Login failed: ${e.message}';
+      }
       setState(() {
-        errorMessage = e.toString();
+        errorMessage = message;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e) {
+      setState(() {
+        errorMessage = 'An unexpected error occurred.';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          showSpinner = false;
+        });
+      }
     }
-
-    setState(() {
-      showSpinner = false;
-    });
   }
 
   @override
@@ -133,6 +177,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ),
+            if (errorMessage != null) ...[
+              Text(
+                errorMessage!,
+                style: TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 10),
+            ],
           ],
         ),
       ),

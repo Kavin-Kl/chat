@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegistrationScreen extends StatefulWidget {
   @override
@@ -8,35 +9,64 @@ class RegistrationScreen extends StatefulWidget {
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool showSpinner = false;
   String? errorMessage;
   String email = '';
   String password = '';
 
   void registerUser() async {
+    if (email.trim().isEmpty || password.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
     setState(() {
       showSpinner = true;
       errorMessage = null;
     });
 
     try {
-      final user = await _auth.createUserWithEmailAndPassword(
-          email: email, password: password);
-      if (user != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration Successful')),
-        );
-        Navigator.pushNamed(context, '/chat');
+      print('Starting registration process...');
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
+
+      if (userCredential.user != null) {
+        print('Auth user created, adding to Firestore...');
+
+        // This will automatically create the 'users' collection if it doesn't exist
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'uid': userCredential.user!.uid,
+          'email': email.trim(),
+          'displayName': email.split('@')[0],
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        print('User document created in Firestore');
+        print('User ID: ${userCredential.user!.uid}');
+
+        // Verify the document was created
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .get();
+
+        if (userDoc.exists) {
+          print('User document verified in Firestore');
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       }
     } catch (e) {
+      print('Error during registration: $e');
       setState(() {
+        showSpinner = false;
         errorMessage = e.toString();
       });
     }
-
-    setState(() {
-      showSpinner = false;
-    });
   }
 
   @override
